@@ -1,0 +1,1813 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>Planning Obra — Complejo Acuático La Vall d'Uixó</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<style>
+  :root {
+    --navy: #0f2740;
+    --navy-light: #1c3d5e;
+    --azure: #0a6e8c;
+    --aqua: #14a098;
+    --aqua-light: #5fd4cc;
+    --sand: #f3eee4;
+    --paper: #fbf9f5;
+    --ink: #16242f;
+    --ink-soft: #5a6a73;
+    --line: #ddd5c5;
+    --amber: #d98e3f;
+    --coral: #d4604a;
+    --done-green: #3f9468;
+    --late-red: #c2412e;
+    --late-bg: #fbeae7;
+  }
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  body {
+    margin: 0;
+    font-family: 'Helvetica Neue', Arial, sans-serif;
+    background: var(--sand);
+    color: var(--ink);
+    padding-bottom: 3rem;
+    overscroll-behavior-x: none;
+  }
+
+  header {
+    background: linear-gradient(135deg, var(--navy) 0%, var(--navy-light) 60%, var(--azure) 100%);
+    color: #fff;
+    padding: 1.4rem 1.2rem 1.6rem;
+    position: relative;
+    overflow: hidden;
+  }
+  header::after { content: ''; position: absolute; right: -40px; top: -40px; width: 180px; height: 180px; border: 2px solid rgba(255,255,255,0.08); border-radius: 50%; }
+  header::before { content: ''; position: absolute; right: 20px; top: 40px; width: 90px; height: 90px; border: 2px solid rgba(255,255,255,0.08); border-radius: 50%; }
+  .eyebrow { font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--aqua-light); font-weight: 600; margin-bottom: 6px; }
+  h1 { font-size: 19px; font-weight: 700; margin: 0 0 2px; letter-spacing: -0.01em; }
+  .subtitle { font-size: 12.5px; color: rgba(255,255,255,0.65); }
+
+  .stat-row { display: flex; gap: 10px; margin-top: 1rem; position: relative; z-index: 1; }
+  .stat-card { flex: 1; background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.12); border-radius: 10px; padding: 8px 10px; }
+  .stat-card.alert { background: rgba(194,65,46,0.35); border-color: rgba(255,150,130,0.4); }
+  .stat-num { font-size: 20px; font-weight: 700; line-height: 1; }
+  .stat-label { font-size: 10px; color: rgba(255,255,255,0.6); margin-top: 3px; text-transform: uppercase; letter-spacing: 0.04em; }
+
+  /* DAY NAV */
+  .day-nav {
+    display: flex;
+    overflow-x: auto;
+    gap: 6px;
+    padding: 12px;
+    background: var(--paper);
+    border-bottom: 1px solid var(--line);
+    position: sticky;
+    top: 0;
+    z-index: 20;
+    -webkit-overflow-scrolling: touch;
+  }
+  .day-nav::-webkit-scrollbar { display: none; }
+  .day-btn {
+    flex-shrink: 0;
+    padding: 8px 12px;
+    border-radius: 12px;
+    border: 1.5px solid var(--line);
+    background: #fff;
+    font-size: 11.5px;
+    font-weight: 600;
+    color: var(--ink-soft);
+    cursor: pointer;
+    white-space: nowrap;
+    transition: all 0.15s;
+    text-align: center;
+    line-height: 1.2;
+    position: relative;
+    min-width: 52px;
+  }
+  .day-btn .dow { display: block; font-size: 9px; text-transform: uppercase; opacity: 0.7; letter-spacing: 0.03em; }
+  .day-btn .dnum { display: block; font-size: 14px; font-weight: 700; margin-top: 1px; }
+  .day-btn.active { background: var(--navy); color: #fff; border-color: var(--navy); }
+  .day-btn.has-late { border-color: var(--late-red); }
+  .day-btn.has-late::after {
+    content: '';
+    position: absolute; top: 4px; right: 6px;
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    background: var(--late-red);
+  }
+  .day-btn.is-today { box-shadow: 0 0 0 2px var(--aqua-light); }
+
+  main { padding: 14px 12px 4px; max-width: 700px; margin: 0 auto; }
+
+  .week-heading { display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 10px; padding: 0 2px; }
+  .week-heading h2 { font-size: 15px; font-weight: 700; color: var(--navy); margin: 0; }
+  .week-progress-text { font-size: 11.5px; color: var(--ink-soft); font-weight: 600; }
+
+  .progress-track { height: 5px; background: var(--line); border-radius: 3px; overflow: hidden; margin: 0 2px 14px; }
+  .progress-fill { height: 100%; background: linear-gradient(90deg, var(--aqua), var(--done-green)); border-radius: 3px; transition: width 0.35s ease; }
+
+  .late-banner {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: var(--late-bg);
+    border: 1px solid #f0c4ba;
+    color: var(--late-red);
+    font-size: 12px;
+    font-weight: 600;
+    padding: 9px 12px;
+    border-radius: 10px;
+    margin-bottom: 12px;
+  }
+
+  /* TASK CARD with swipe */
+  .task-list { display: flex; flex-direction: column; gap: 8px; }
+
+  .task-wrap {
+    position: relative;
+    border-radius: 11px;
+    overflow: hidden;
+  }
+  .swipe-hint {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    padding-right: 18px;
+    background: var(--azure);
+    color: #fff;
+    font-size: 12px;
+    font-weight: 700;
+  }
+  .swipe-hint.left-hint { justify-content: flex-start; padding-left: 18px; background: var(--ink-soft); }
+
+  .task {
+    display: flex;
+    align-items: flex-start;
+    gap: 11px;
+    background: #fff;
+    border: 1px solid var(--line);
+    border-radius: 11px;
+    padding: 11px 12px;
+    cursor: pointer;
+    transition: transform 0.15s, box-shadow 0.15s;
+    position: relative;
+    touch-action: pan-y;
+  }
+  .task.dragging { transition: none; box-shadow: 0 4px 14px rgba(0,0,0,0.12); }
+  .task.is-done { background: #f3faf6; border-color: #cfe8da; }
+  .task.is-done .task-name { color: #6b8c7a; text-decoration: line-through; text-decoration-color: #a9cdb8; }
+  .task.is-late { border-color: var(--late-red); background: var(--late-bg); }
+
+  .progress-ring {
+    flex-shrink: 0;
+    width: 38px; height: 38px;
+    margin-top: 1px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background 0.2s;
+    cursor: pointer;
+  }
+  .progress-ring-inner {
+    width: 30px; height: 30px;
+    border-radius: 50%;
+    background: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 10px;
+    font-weight: 700;
+    color: var(--ink-soft);
+  }
+  .task.is-done .progress-ring-inner { color: var(--done-green); font-size: 14px; }
+  .task.is-late .progress-ring-inner { color: var(--late-red); }
+
+  .mini-progress-track { height: 4px; background: var(--line); border-radius: 2px; overflow: hidden; margin-top: 6px; }
+  .mini-progress-fill { height: 100%; border-radius: 2px; transition: width 0.25s ease; }
+
+  .task-body { flex: 1; min-width: 0; }
+  .task-name { font-size: 13.5px; font-weight: 600; color: var(--ink); line-height: 1.3; }
+
+  .task-meta { display: flex; align-items: center; gap: 6px; margin-top: 5px; flex-wrap: wrap; }
+  .task-tag { display: inline-block; font-size: 9.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.03em; padding: 2px 7px; border-radius: 5px; }
+  .tag-piscina { background: #e3f2f5; color: var(--azure); }
+  .tag-edif { background: #f3ece0; color: var(--amber); }
+  .tag-exterior { background: #e7f4ee; color: var(--done-green); }
+  .tag-final { background: #fbe9e6; color: var(--coral); }
+
+  .due-pill { font-size: 10px; font-weight: 700; padding: 2px 7px; border-radius: 5px; background: #eef1f3; color: var(--ink-soft); }
+  .due-pill.overdue { background: var(--late-red); color: #fff; }
+  .due-pill.today { background: var(--amber); color: #fff; }
+
+  .note-preview { font-size: 11px; color: var(--ink-soft); margin-top: 4px; font-style: italic; }
+
+  .empty-state { text-align: center; padding: 2.5rem 1rem; color: var(--ink-soft); font-size: 13px; line-height: 1.6; }
+
+  /* DETAIL DRAWER */
+  .drawer-overlay { position: fixed; inset: 0; background: rgba(15,39,64,0.4); z-index: 100; opacity: 0; pointer-events: none; transition: opacity 0.2s; }
+  .drawer-overlay.open { opacity: 1; pointer-events: auto; }
+  .drawer {
+    position: fixed; left: 0; right: 0; bottom: 0;
+    background: #fff;
+    border-radius: 18px 18px 0 0;
+    padding: 18px 18px max(18px, env(safe-area-inset-bottom));
+    transform: translateY(100%);
+    transition: transform 0.25s ease;
+    z-index: 101;
+    max-width: 700px;
+    margin: 0 auto;
+    box-shadow: 0 -8px 30px rgba(0,0,0,0.15);
+    max-height: 86vh;
+    overflow-y: auto;
+  }
+  .drawer.open { transform: translateY(0); }
+  .drawer-handle { width: 36px; height: 4px; background: var(--line); border-radius: 3px; margin: 0 auto 16px; }
+  .drawer-title { font-size: 16px; font-weight: 700; color: var(--navy); margin-bottom: 4px; }
+  .drawer-tag-row { margin-bottom: 16px; }
+
+  .field-label { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; color: var(--ink-soft); margin: 16px 0 7px; }
+  .field-label:first-of-type { margin-top: 0; }
+
+  .progress-slider-row { display: flex; align-items: center; gap: 12px; }
+  .progress-slider-row input[type="range"] {
+    flex: 1;
+    height: 6px;
+    border-radius: 3px;
+    background: var(--line);
+    accent-color: var(--aqua);
+  }
+  .progress-slider-value { font-size: 14px; font-weight: 700; color: var(--navy); min-width: 42px; text-align: right; }
+  .progress-quick-row { display: flex; gap: 6px; margin-top: 8px; }
+  .progress-quick-btn {
+    flex: 1;
+    padding: 7px 0;
+    border-radius: 8px;
+    border: 1.5px solid var(--line);
+    background: var(--paper);
+    font-size: 11.5px;
+    font-weight: 600;
+    color: var(--ink-soft);
+    cursor: pointer;
+  }
+  .progress-quick-btn.active { background: var(--aqua); border-color: var(--aqua); color: #fff; }
+
+  .date-input-row { display: flex; gap: 8px; align-items: center; }
+  .date-input-row input[type="date"] {
+    flex: 1;
+    padding: 10px 12px;
+    border-radius: 9px;
+    border: 1.5px solid var(--line);
+    font-size: 14px;
+    font-family: inherit;
+    color: var(--ink);
+    background: var(--paper);
+  }
+  .clear-date-btn {
+    flex-shrink: 0;
+    padding: 10px 12px;
+    border-radius: 9px;
+    border: 1.5px solid var(--line);
+    background: #fff;
+    font-size: 12px;
+    color: var(--ink-soft);
+    cursor: pointer;
+  }
+
+  textarea.note-input {
+    width: 100%;
+    min-height: 70px;
+    padding: 10px 12px;
+    border-radius: 9px;
+    border: 1.5px solid var(--line);
+    font-size: 13.5px;
+    font-family: inherit;
+    color: var(--ink);
+    background: var(--paper);
+    resize: vertical;
+  }
+
+  .day-chip-grid { display: flex; flex-wrap: wrap; gap: 6px; }
+  .day-chip {
+    padding: 7px 10px;
+    border-radius: 8px;
+    border: 1.5px solid var(--line);
+    background: var(--paper);
+    font-size: 11.5px;
+    font-weight: 600;
+    color: var(--ink-soft);
+    cursor: pointer;
+  }
+  .day-chip.on { background: var(--aqua); border-color: var(--aqua); color: #fff; }
+  .day-chip.month-divider { width: 100%; height: 0; border: none; margin: 2px 0; }
+
+  .drawer-close-btn {
+    margin-top: 20px;
+    width: 100%;
+    padding: 13px;
+    border: none;
+    border-radius: 10px;
+    background: var(--navy);
+    color: #fff;
+    font-size: 13.5px;
+    font-weight: 600;
+    cursor: pointer;
+  }
+
+  .photo-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 6px;
+    margin-bottom: 8px;
+  }
+  .photo-thumb-wrap {
+    position: relative;
+    aspect-ratio: 1;
+    border-radius: 8px;
+    overflow: hidden;
+    border: 1px solid var(--line);
+  }
+  .photo-thumb-wrap img {
+    width: 100%; height: 100%;
+    object-fit: cover;
+    display: block;
+  }
+  .photo-thumb-date {
+    position: absolute;
+    bottom: 0; left: 0; right: 0;
+    background: rgba(15,39,64,0.7);
+    color: #fff;
+    font-size: 8.5px;
+    text-align: center;
+    padding: 2px 0;
+  }
+  .photo-delete-btn {
+    position: absolute;
+    top: 3px; right: 3px;
+    width: 18px; height: 18px;
+    border-radius: 50%;
+    background: rgba(194,65,46,0.9);
+    color: #fff;
+    font-size: 11px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+  }
+  .photo-add-row { display: flex; gap: 8px; }
+
+  /* COVER PHOTO */
+  .task-cover-thumb {
+    width: 44px; height: 44px;
+    border-radius: 8px;
+    object-fit: cover;
+    flex-shrink: 0;
+    border: 1px solid var(--line);
+  }
+  .drawer-header-row {
+    display: flex;
+    gap: 12px;
+    align-items: flex-start;
+    margin-bottom: 4px;
+  }
+  .drawer-cover-wrap {
+    position: relative;
+    width: 64px; height: 64px;
+    border-radius: 10px;
+    overflow: hidden;
+    flex-shrink: 0;
+    border: 1px solid var(--line);
+    background: var(--paper);
+    cursor: pointer;
+  }
+  .drawer-cover-wrap img {
+    width: 100%; height: 100%;
+    object-fit: cover;
+    display: block;
+  }
+  .drawer-cover-placeholder {
+    width: 100%; height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 20px;
+    color: var(--ink-soft);
+    opacity: 0.4;
+  }
+  .drawer-cover-edit-badge {
+    position: absolute;
+    bottom: 0; right: 0;
+    background: var(--navy);
+    color: #fff;
+    font-size: 9px;
+    padding: 2px 4px;
+    border-radius: 5px 0 0 0;
+  }
+  .drawer-cover-remove-btn {
+    position: absolute;
+    top: 2px; left: 2px;
+    width: 18px; height: 18px;
+    border-radius: 50%;
+    background: rgba(194,65,46,0.92);
+    color: #fff;
+    font-size: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 2;
+  }
+  .drawer-title-edit-row { flex: 1; min-width: 0; }
+  .edit-name-input {
+    width: 100%;
+    font-size: 15px;
+    font-weight: 700;
+    color: var(--navy);
+    border: none;
+    border-bottom: 1.5px solid var(--line);
+    background: transparent;
+    padding: 2px 0 4px;
+    font-family: inherit;
+  }
+  .edit-name-input:focus { outline: none; border-bottom-color: var(--aqua); }
+  .edit-cat-select {
+    margin-top: 6px;
+    font-size: 11.5px;
+    padding: 4px 8px;
+    border-radius: 7px;
+    border: 1.5px solid var(--line);
+    background: var(--paper);
+    color: var(--ink-soft);
+    font-family: inherit;
+  }
+  .photo-add-btn {
+    flex: 1;
+    padding: 10px 6px;
+    border-radius: 9px;
+    border: 1.5px dashed var(--aqua);
+    background: var(--paper);
+    font-size: 11.5px;
+    font-weight: 600;
+    color: var(--azure);
+    cursor: pointer;
+  }
+  .photo-empty-hint { font-size: 11px; color: var(--ink-soft); font-style: italic; margin-bottom: 8px; }
+
+  .photo-lightbox-overlay {
+    position: fixed; inset: 0;
+    background: rgba(0,0,0,0.88);
+    z-index: 200;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+  }
+  .photo-lightbox-overlay.open { display: flex; }
+  .photo-lightbox-overlay img {
+    max-width: 100%; max-height: 85vh;
+    border-radius: 8px;
+  }
+  .photo-lightbox-close {
+    position: absolute;
+    top: 18px; right: 18px;
+    width: 36px; height: 36px;
+    border-radius: 50%;
+    background: rgba(255,255,255,0.15);
+    color: #fff;
+    font-size: 18px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+  }
+
+  .task-photo-badge {
+    position: absolute;
+    top: -4px; right: -4px;
+    background: var(--azure);
+    color: #fff;
+    font-size: 8px;
+    font-weight: 700;
+    border-radius: 8px;
+    padding: 1px 4px;
+    min-width: 13px;
+    text-align: center;
+  }
+
+  footer { text-align: center; font-size: 10.5px; color: var(--ink-soft); padding: 1.5rem 1rem 0.5rem; opacity: 0.6; line-height: 1.6; }
+
+  .action-bar {
+    display: flex;
+    gap: 8px;
+    padding: 10px 12px;
+    background: var(--paper);
+    border-bottom: 1px solid var(--line);
+  }
+  .action-btn {
+    flex: 1;
+    padding: 9px 6px;
+    border-radius: 9px;
+    border: 1.5px solid var(--line);
+    background: #fff;
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--ink-soft);
+    cursor: pointer;
+    white-space: nowrap;
+  }
+  .add-btn { color: var(--done-green); border-color: #cfe8da; }
+  .delete-btn { color: var(--late-red); border-color: #f0c4ba; }
+  .delete-btn.active { background: var(--late-red); color: #fff; border-color: var(--late-red); }
+  .export-btn { color: var(--azure); border-color: #c6e3ec; }
+  .export-btn[disabled] { opacity: 0.5; pointer-events: none; }
+
+  .task.delete-mode { border-color: var(--late-red); }
+  .delete-x {
+    flex-shrink: 0;
+    width: 26px; height: 26px;
+    border-radius: 50%;
+    background: var(--late-red);
+    color: #fff;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    font-size: 15px;
+    font-weight: 700;
+    cursor: pointer;
+    margin-top: 1px;
+  }
+  body.delete-mode-on .delete-x { display: flex; }
+  body.delete-mode-on .progress-ring { display: none; }
+
+  .new-task-input {
+    width: 100%;
+    padding: 11px 12px;
+    border-radius: 9px;
+    border: 1.5px solid var(--line);
+    font-size: 14px;
+    font-family: inherit;
+    color: var(--ink);
+    background: var(--paper);
+  }
+  .new-task-select {
+    width: 100%;
+    padding: 11px 12px;
+    border-radius: 9px;
+    border: 1.5px solid var(--line);
+    font-size: 14px;
+    font-family: inherit;
+    color: var(--ink);
+    background: var(--paper);
+    margin-top: 8px;
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="eyebrow">Grupo Nealis · La Vall d'Uixó</div>
+  <h1>Complejo Acuático — Trabajos pendientes</h1>
+  <div class="subtitle">Vista diaria · 15 junio – 31 agosto 2026</div>
+  <div class="subtitle" style="margin-top:2px; font-weight:600; letter-spacing:0.04em; opacity:0.55; font-size:10.5px; text-transform:uppercase;">Creada por Sicignano Gaetano</div>
+  <div class="subtitle" id="syncIndicator" style="margin-top:3px; font-weight:600; opacity:0.5;">⏳ Cargando…</div>
+  <div class="stat-row">
+    <div class="stat-card">
+      <div class="stat-num" id="stat-total">38</div>
+      <div class="stat-label">Partidas</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-num" id="stat-done">0</div>
+      <div class="stat-label">Completadas</div>
+    </div>
+    <div class="stat-card alert" id="stat-late-card">
+      <div class="stat-num" id="stat-late">0</div>
+      <div class="stat-label">Retrasadas</div>
+    </div>
+  </div>
+</header>
+
+<div class="action-bar">
+  <button class="action-btn add-btn" id="addTaskBtn">＋ Añadir partida</button>
+  <button class="action-btn delete-btn" id="deleteModeBtn">🗑 Eliminar</button>
+  <button class="action-btn export-btn" id="exportPdfBtn">📄 PDF Gantt</button>
+</div>
+
+<nav class="day-nav" id="dayNav"></nav>
+
+<main>
+  <div class="week-heading">
+    <h2 id="dayHeading">—</h2>
+    <span class="week-progress-text" id="dayProgressText">0 / 0</span>
+  </div>
+  <div class="progress-track"><div class="progress-fill" id="dayProgressFill" style="width:0%"></div></div>
+  <div id="lateBannerSlot"></div>
+  <div class="task-list" id="taskList"></div>
+</main>
+
+<footer>Toca el círculo para avanzar 25% · Toca el resto de la tarjeta para abrir detalles, editar nombre, foto de portada y fotos de avance<br>Deslizá a la izquierda o derecha para mover de día · Todo se guarda en el servidor</footer>
+
+<div class="drawer-overlay" id="drawerOverlay"></div>
+<div class="drawer" id="drawer">
+  <div class="drawer-handle"></div>
+
+  <div class="drawer-header-row">
+    <div class="drawer-cover-wrap" id="drawerCoverWrap">
+      <div class="drawer-cover-placeholder" id="drawerCoverPlaceholder">🖼</div>
+      <div class="drawer-cover-edit-badge">editar</div>
+    </div>
+    <div class="drawer-title-edit-row">
+      <input type="text" class="edit-name-input" id="drawerNameInput" placeholder="Nombre de la partida">
+      <select class="edit-cat-select" id="drawerCatSelect">
+        <option value="piscina">Piscinas</option>
+        <option value="edif">Edificios</option>
+        <option value="exterior">Exterior</option>
+        <option value="final">Cierre final</option>
+      </select>
+    </div>
+  </div>
+  <input type="file" id="coverPhotoInput" accept="image/*" style="display:none;">
+
+  <div class="field-label">Porcentaje completado</div>
+  <div class="progress-slider-row">
+    <input type="range" id="drawerProgressSlider" min="0" max="100" step="5" value="0">
+    <span class="progress-slider-value" id="drawerProgressValue">0%</span>
+  </div>
+  <div class="progress-quick-row">
+    <button class="progress-quick-btn" data-pct="0">0%</button>
+    <button class="progress-quick-btn" data-pct="25">25%</button>
+    <button class="progress-quick-btn" data-pct="50">50%</button>
+    <button class="progress-quick-btn" data-pct="75">75%</button>
+    <button class="progress-quick-btn" data-pct="100">100%</button>
+  </div>
+
+  <div class="field-label">Fecha límite</div>
+  <div class="date-input-row">
+    <input type="date" id="drawerDueDate">
+    <button class="clear-date-btn" id="clearDueDate">Quitar</button>
+  </div>
+
+  <div class="field-label">Nota</div>
+  <textarea class="note-input" id="drawerNote" placeholder="Ej: falta material, pendiente de subcontrata, revisar con arquitecto…"></textarea>
+
+  <div class="field-label">Fotos del avance</div>
+  <div class="photo-grid" id="drawerPhotoGrid"></div>
+  <div class="photo-add-row">
+    <button class="photo-add-btn" id="addPhotoCameraBtn">📷 Hacer foto</button>
+    <button class="photo-add-btn" id="addPhotoGalleryBtn">🖼 Elegir de galería</button>
+  </div>
+  <input type="file" id="photoInputCamera" accept="image/*" capture="environment" style="display:none;">
+  <input type="file" id="photoInputGallery" accept="image/*" multiple style="display:none;">
+
+  <div class="field-label">Días programados</div>
+  <div class="day-chip-grid" id="drawerDayChips"></div>
+
+  <button class="drawer-close-btn" id="drawerCloseBtn">Guardar y cerrar</button>
+  <button class="drawer-close-btn" id="drawerDeleteBtn" style="background:#fff; color:var(--late-red); border:1.5px solid #f0c4ba; margin-top:8px;">🗑 Eliminar esta partida</button>
+</div>
+
+<div class="drawer-overlay" id="newDrawerOverlay"></div>
+<div class="drawer" id="newDrawer">
+  <div class="drawer-handle"></div>
+  <div class="drawer-title">Nueva partida</div>
+
+  <div class="field-label">Nombre de la partida</div>
+  <input type="text" class="new-task-input" id="newTaskName" placeholder="Ej: Sellado juntas piscina grande">
+
+  <div class="field-label">Categoría</div>
+  <select class="new-task-select" id="newTaskCat">
+    <option value="piscina">Piscinas</option>
+    <option value="edif">Edificios</option>
+    <option value="exterior">Exterior</option>
+    <option value="final">Cierre final</option>
+  </select>
+
+  <div class="field-label">Día programado</div>
+  <input type="date" class="new-task-input" id="newTaskDay" min="2026-06-15" max="2026-08-31">
+
+  <button class="drawer-close-btn" id="newTaskSaveBtn">Crear partida</button>
+</div>
+
+<div class="photo-lightbox-overlay" id="photoLightbox">
+  <div class="photo-lightbox-close" id="photoLightboxClose">✕</div>
+  <img id="photoLightboxImg" src="" alt="Foto de avance">
+</div>
+
+<script>
+// ---------- DATE RANGE: 15 junio - 31 julio 2026 ----------
+function buildDays(startISO, endISO) {
+  const days = [];
+  let d = new Date(startISO + 'T00:00:00');
+  const end = new Date(endISO + 'T00:00:00');
+  const dowNames = ['DOM','LUN','MAR','MIÉ','JUE','VIE','SÁB'];
+  while (d <= end) {
+    const iso = d.toISOString().slice(0,10);
+    days.push({
+      iso,
+      dow: dowNames[d.getDay()],
+      dnum: d.getDate(),
+      month: d.getMonth() + 1
+    });
+    d.setDate(d.getDate() + 1);
+  }
+  return days;
+}
+const ALL_DAYS = buildDays('2026-06-15', '2026-08-31');
+const TODAY_ISO = new Date().toISOString().slice(0,10);
+
+function tag(category) {
+  const map = { piscina: 'Piscinas', edif: 'Edificios', exterior: 'Exterior', final: 'Cierre final' };
+  return map[category];
+}
+
+const API = ''; // same origin
+
+// ---------- STATE (mirrors server) ----------
+let TASKS = [];          // [{id, name, cat}]
+let scheduleById = {};   // id -> [iso, iso, ...]
+let metaById = {};       // id -> {done, progress, note, due_date}
+let photosById = {};     // id -> [{id, url, ts}]
+
+let currentDay = (TODAY_ISO >= '2026-06-15' && TODAY_ISO <= '2026-07-31') ? TODAY_ISO : '2026-06-15';
+let drawerTaskIndex = null; // task id
+let deleteModeOn = false;
+let pollTimer = null;
+
+function tkey(id) { return id; } // kept for readability parity with previous version
+function getSchedule(id) { return scheduleById[id] || []; }
+function getMeta(id) { return metaById[id] || { done: 0, progress: 0, note: null, due_date: null }; }
+function getProgress(id) {
+  const m = getMeta(id);
+  if (m.done) return 100;
+  return m.progress || 0;
+}
+
+// ---------- AUTORIZACIÓN PARA EDITAR ----------
+let editPassword = sessionStorage.getItem('obra_edit_password') || null;
+
+function askForEditPassword() {
+  return new Promise((resolve) => {
+    const overlay = document.createElement('div');
+    overlay.className = 'drawer-overlay open';
+    overlay.style.zIndex = '300';
+    const drawer = document.createElement('div');
+    drawer.className = 'drawer open';
+    drawer.style.zIndex = '301';
+    drawer.innerHTML = `
+      <div class="drawer-handle"></div>
+      <div class="drawer-title">🔒 Contraseña para modificar</div>
+      <p style="font-size:13px; color:var(--ink-soft); margin:6px 0 14px;">
+        Puedes ver todo libremente. Para modificar, añadir o eliminar partidas necesitas la contraseña.
+      </p>
+      <input type="password" class="new-task-input" id="editPasswordInput" placeholder="Contraseña" autocomplete="off">
+      <p id="editPasswordError" style="font-size:12px; color:var(--late-red); margin-top:8px; display:none;">Contraseña incorrecta. Inténtalo de nuevo.</p>
+      <button class="drawer-close-btn" id="editPasswordSubmitBtn" style="margin-top:14px;">Confirmar</button>
+      <button class="drawer-close-btn" id="editPasswordCancelBtn" style="background:#fff; color:var(--ink-soft); border:1.5px solid var(--line); margin-top:8px;">Cancelar</button>
+    `;
+    document.body.appendChild(overlay);
+    document.body.appendChild(drawer);
+
+    const input = drawer.querySelector('#editPasswordInput');
+    const errorMsg = drawer.querySelector('#editPasswordError');
+    input.focus();
+
+    function cleanup(result) {
+      overlay.remove();
+      drawer.remove();
+      resolve(result);
+    }
+
+    async function trySubmit() {
+      const pwd = input.value;
+      if (!pwd) return;
+      try {
+        const res = await fetch(API + '/api/auth/check', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ password: pwd })
+        });
+        const data = await res.json();
+        if (data.ok) {
+          editPassword = pwd;
+          sessionStorage.setItem('obra_edit_password', pwd);
+          cleanup(true);
+        } else {
+          errorMsg.style.display = 'block';
+          input.value = '';
+          input.focus();
+        }
+      } catch (e) {
+        errorMsg.textContent = 'Error de conexión. Inténtalo de nuevo.';
+        errorMsg.style.display = 'block';
+      }
+    }
+
+    drawer.querySelector('#editPasswordSubmitBtn').addEventListener('click', trySubmit);
+    drawer.querySelector('#editPasswordCancelBtn').addEventListener('click', () => cleanup(false));
+    input.addEventListener('keydown', (e) => { if (e.key === 'Enter') trySubmit(); });
+    overlay.addEventListener('click', () => cleanup(false));
+  });
+}
+
+// Wrapper de fetch que añade la contraseña y reintenta una vez si falta o es incorrecta
+async function authorizedFetch(url, options = {}) {
+  options.headers = options.headers || {};
+  if (editPassword) options.headers['x-edit-password'] = editPassword;
+
+  let res = await fetch(url, options);
+  if (res.status === 401) {
+    const granted = await askForEditPassword();
+    if (!granted) throw new Error('CANCELLED_AUTH');
+    options.headers['x-edit-password'] = editPassword;
+    res = await fetch(url, options);
+  }
+  return res;
+}
+
+// ---------- API CALLS ----------
+async function apiGetState() {
+  const res = await fetch(API + '/api/state');
+  if (!res.ok) throw new Error('No se pudo cargar el estado');
+  return res.json();
+}
+async function apiCreateTask(name, cat, day) {
+  const res = await authorizedFetch(API + '/api/tasks', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ name, cat, day })
+  });
+  if (!res.ok) throw new Error('No se pudo crear la partida');
+  return res.json();
+}
+async function apiDeleteTask(id) {
+  const res = await authorizedFetch(API + '/api/tasks/' + id, { method: 'DELETE' });
+  if (!res.ok) throw new Error('No se pudo eliminar');
+  return res.json();
+}
+async function apiEditTask(id, name, cat) {
+  const res = await authorizedFetch(API + '/api/tasks/' + id, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ name, cat })
+  });
+  if (!res.ok) throw new Error('No se pudo editar la partida');
+  return res.json();
+}
+async function apiUploadCover(id, file) {
+  const formData = new FormData();
+  formData.append('photo', file);
+  const res = await authorizedFetch(API + '/api/tasks/' + id + '/cover', { method: 'POST', body: formData });
+  if (!res.ok) throw new Error('No se pudo subir la foto de portada');
+  return res.json();
+}
+async function apiDeleteCover(id) {
+  const res = await authorizedFetch(API + '/api/tasks/' + id + '/cover', { method: 'DELETE' });
+  if (!res.ok) throw new Error('No se pudo eliminar la foto de portada');
+  return res.json();
+}
+async function apiUpdateMeta(id, meta) {
+  const res = await authorizedFetch(API + '/api/tasks/' + id + '/meta', {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(meta)
+  });
+  if (!res.ok) throw new Error('No se pudo guardar');
+  return res.json();
+}
+async function apiMoveDay(id, add, remove) {
+  const res = await authorizedFetch(API + '/api/tasks/' + id + '/schedule', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ add, remove })
+  });
+  if (!res.ok) throw new Error('No se pudo mover');
+  return res.json();
+}
+async function apiSetSchedule(id, days) {
+  const res = await authorizedFetch(API + '/api/tasks/' + id + '/schedule', {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ days })
+  });
+  if (!res.ok) throw new Error('No se pudo guardar el calendario');
+  return res.json();
+}
+async function apiUploadPhoto(id, file) {
+  const formData = new FormData();
+  formData.append('photo', file);
+  const res = await authorizedFetch(API + '/api/tasks/' + id + '/photos', { method: 'POST', body: formData });
+  if (!res.ok) throw new Error('No se pudo subir la foto');
+  return res.json();
+}
+async function apiDeletePhoto(photoId) {
+  const res = await authorizedFetch(API + '/api/photos/' + photoId, { method: 'DELETE' });
+  if (!res.ok) throw new Error('No se pudo eliminar la foto');
+  return res.json();
+}
+
+// ---------- LOAD / SYNC ----------
+async function loadState() {
+  updateSyncIndicator('loading');
+  const data = await apiGetState();
+  TASKS = data.tasks || [];
+  scheduleById = data.scheduleById || {};
+  metaById = data.metaById || {};
+  photosById = data.photosById || {};
+  updateSyncIndicator('synced');
+}
+
+async function pollForUpdates() {
+  if (drawerIsOpen() || document.hidden) return;
+  try {
+    const data = await apiGetState();
+    const incoming = JSON.stringify(data);
+    const current = JSON.stringify({ tasks: TASKS, scheduleById, metaById, photosById });
+    if (incoming !== current) {
+      TASKS = data.tasks || [];
+      scheduleById = data.scheduleById || {};
+      metaById = data.metaById || {};
+      photosById = data.photosById || {};
+      renderAll();
+    }
+    updateSyncIndicator('synced');
+  } catch (e) {
+    updateSyncIndicator('error');
+  }
+}
+
+function updateSyncIndicator(state) {
+  const el = document.getElementById('syncIndicator');
+  if (!el) return;
+  if (state === 'saving') { el.textContent = '⏳ Guardando…'; el.style.opacity = '0.85'; }
+  else if (state === 'synced') { el.textContent = '✓ Sincronizado con el servidor'; el.style.opacity = '0.6'; setTimeout(() => { if(el.textContent==='✓ Sincronizado con el servidor') el.style.opacity='0.45'; }, 1500); }
+  else if (state === 'error') { el.textContent = '⚠ Sin conexión con el servidor'; el.style.opacity = '1'; }
+  else if (state === 'loading') { el.textContent = '⏳ Cargando…'; el.style.opacity = '0.85'; }
+}
+
+function drawerIsOpen() {
+  const d = document.getElementById('drawer');
+  return d && d.classList.contains('open');
+}
+
+// ---------- DERIVED HELPERS ----------
+function isLate(id) {
+  const m = getMeta(id);
+  if (!m.due_date || m.done) return false;
+  return m.due_date < TODAY_ISO;
+}
+function isDueToday(id) {
+  const m = getMeta(id);
+  if (!m.due_date || m.done) return false;
+  return m.due_date === TODAY_ISO;
+}
+function dayHasLateTask(iso) {
+  return TASKS.some(t => getSchedule(t.id).includes(iso) && isLate(t.id));
+}
+
+// ---------- RENDER: NAV ----------
+function renderDayNav() {
+  const nav = document.getElementById('dayNav');
+  nav.innerHTML = '';
+  ALL_DAYS.forEach(d => {
+    const btn = document.createElement('button');
+    btn.className = 'day-btn'
+      + (d.iso === currentDay ? ' active' : '')
+      + (d.iso === TODAY_ISO ? ' is-today' : '')
+      + (dayHasLateTask(d.iso) ? ' has-late' : '');
+    btn.innerHTML = `<span class="dow">${d.dow}</span><span class="dnum">${d.dnum}</span>`;
+    btn.onclick = () => { currentDay = d.iso; renderAll(); scrollDayIntoView(); };
+    btn.dataset.iso = d.iso;
+    nav.appendChild(btn);
+  });
+}
+
+function scrollDayIntoView() {
+  const nav = document.getElementById('dayNav');
+  const activeBtn = nav.querySelector('.day-btn.active');
+  if (activeBtn) {
+    const navRect = nav.getBoundingClientRect();
+    const btnRect = activeBtn.getBoundingClientRect();
+    nav.scrollLeft += (btnRect.left - navRect.left) - navRect.width/2 + btnRect.width/2;
+  }
+}
+
+function formatDayLabel(iso) {
+  const d = ALL_DAYS.find(d => d.iso === iso);
+  const months = {6:'junio', 7:'julio', 8:'agosto'};
+  return d.dnum + ' de ' + months[d.month] + (iso === TODAY_ISO ? ' · hoy' : '');
+}
+
+function renderDayHeader() {
+  document.getElementById('dayHeading').textContent = formatDayLabel(currentDay);
+  const idsToday = TASKS.map(t => t.id).filter(id => getSchedule(id).includes(currentDay));
+  const doneToday = idsToday.filter(id => getMeta(id).done);
+  document.getElementById('dayProgressText').textContent = doneToday.length + ' / ' + idsToday.length;
+  const pct = idsToday.length ? Math.round(doneToday.length/idsToday.length*100) : 0;
+  document.getElementById('dayProgressFill').style.width = pct + '%';
+}
+
+function renderGlobalStats() {
+  const total = TASKS.length;
+  const done = TASKS.filter(t => getMeta(t.id).done).length;
+  const late = TASKS.filter(t => isLate(t.id)).length;
+  document.getElementById('stat-total').textContent = total;
+  document.getElementById('stat-done').textContent = done;
+  document.getElementById('stat-late').textContent = late;
+  document.getElementById('stat-late-card').style.opacity = late > 0 ? '1' : '0.5';
+}
+
+function renderLateBanner() {
+  const slot = document.getElementById('lateBannerSlot');
+  const lateToday = TASKS.filter(t => getSchedule(t.id).includes(currentDay) && isLate(t.id));
+  if (lateToday.length > 0) {
+    slot.innerHTML = `<div class="late-banner">⚠️ ${lateToday.length} partida${lateToday.length>1?'s':''} con fecha límite superada</div>`;
+  } else {
+    slot.innerHTML = '';
+  }
+}
+
+// ---------- RENDER: TASK LIST ----------
+function renderTaskList() {
+  const list = document.getElementById('taskList');
+  list.innerHTML = '';
+  let idsToday = TASKS.filter(t => getSchedule(t.id).includes(currentDay)).map(t => t.id);
+
+  if (idsToday.length === 0) {
+    list.innerHTML = '<div class="empty-state">No hay partidas programadas para este día.<br>Mantén pulsada cualquier tarea de otro día y muévela aquí.</div>';
+    return;
+  }
+
+  idsToday.sort((a,b) => {
+    const score = id => isLate(id) ? 0 : isDueToday(id) ? 1 : 2;
+    return score(a) - score(b);
+  });
+
+  idsToday.forEach(id => {
+    const t = TASKS.find(t => t.id === id);
+    const pct = getProgress(id);
+    const done = pct >= 100;
+    const late = isLate(id);
+    const dueToday = isDueToday(id);
+    const m = getMeta(id);
+    const due = m.due_date;
+    const note = m.note;
+
+    const wrap = document.createElement('div');
+    wrap.className = 'task-wrap';
+
+    let duePillHtml = '';
+    if (due) {
+      const dObj = ALL_DAYS.find(d => d.iso === due);
+      const label = dObj ? dObj.dnum + ' ' + ({6:'jun',7:'jul',8:'ago'}[dObj.month]) : due;
+      const cls = late ? 'overdue' : dueToday ? 'today' : '';
+      duePillHtml = `<span class="due-pill ${cls}">${late ? '⚠ ' : ''}límite: ${label}</span>`;
+    }
+
+    const noteHtml = note ? `<div class="note-preview">📝 ${escapeHtml(note)}</div>` : '';
+    const ringColor = done ? 'var(--done-green)' : pct > 0 ? 'var(--amber)' : 'var(--line)';
+    const photoCount = (photosById[id] || []).length;
+    const photoBadgeHtml = photoCount > 0 ? `<div class="task-photo-badge">📷${photoCount}</div>` : '';
+    const coverThumbHtml = t.cover_photo ? `<img class="task-cover-thumb" src="${t.cover_photo}" alt="">` : '';
+
+    wrap.innerHTML = `
+      <div class="swipe-hint left-hint">← día anterior</div>
+      <div class="swipe-hint">día siguiente →</div>
+      <div class="task ${done ? 'is-done' : ''} ${late ? 'is-late' : ''}" data-id="${id}">
+        <div class="delete-x" data-id="${id}">✕</div>
+        <div class="progress-ring" style="background: conic-gradient(${ringColor} ${pct * 3.6}deg, var(--line) 0deg); position:relative;">
+          <div class="progress-ring-inner">${done ? '✓' : pct + '%'}</div>
+          ${photoBadgeHtml}
+        </div>
+        ${coverThumbHtml}
+        <div class="task-body">
+          <div class="task-name">${escapeHtml(t.name)}</div>
+          <div class="task-meta">
+            <span class="task-tag tag-${t.cat}">${tag(t.cat)}</span>
+            ${duePillHtml}
+          </div>
+          <div class="mini-progress-track"><div class="mini-progress-fill" style="width:${pct}%; background:${ringColor};"></div></div>
+          ${noteHtml}
+        </div>
+      </div>
+    `;
+    list.appendChild(wrap);
+    const taskEl = wrap.querySelector('.task');
+    attachTaskHandlers(taskEl, id);
+    const delX = wrap.querySelector('.delete-x');
+    delX.addEventListener('click', (e) => {
+      e.stopPropagation();
+      deleteTask(id);
+    });
+  });
+}
+
+function escapeHtml(s) {
+  const div = document.createElement('div');
+  div.textContent = s;
+  return div.innerHTML;
+}
+
+function attachTaskHandlers(el, id) {
+  let startX = 0, startY = 0, currentX = 0, dragging = false, decided = false, isHorizontal = false;
+  let pressTimer = null;
+  let longPressed = false;
+
+  function onStart(x, y) {
+    if (deleteModeOn) return;
+    startX = x; startY = y; currentX = x;
+    dragging = true; decided = false; isHorizontal = false; longPressed = false;
+    pressTimer = setTimeout(() => {
+      if (!isHorizontal) { longPressed = true; openDrawer(id); }
+    }, 480);
+  }
+  function onMove(x, y) {
+    if (!dragging) return;
+    const dx = x - startX;
+    const dy = y - startY;
+    if (!decided) {
+      if (Math.abs(dx) > 8 || Math.abs(dy) > 8) {
+        decided = true;
+        isHorizontal = Math.abs(dx) > Math.abs(dy);
+        if (isHorizontal) clearTimeout(pressTimer);
+      }
+    }
+    if (isHorizontal) {
+      currentX = x;
+      const clamped = Math.max(-110, Math.min(110, dx));
+      el.style.transform = `translateX(${clamped}px)`;
+      el.classList.add('dragging');
+    }
+  }
+  async function onEnd() {
+    clearTimeout(pressTimer);
+    if (isHorizontal) {
+      const dx = currentX - startX;
+      el.classList.remove('dragging');
+      el.style.transform = '';
+      if (dx > 70) await moveDay(id, -1);
+      else if (dx < -70) await moveDay(id, 1);
+    }
+    dragging = false;
+  }
+
+  el.addEventListener('touchstart', e => onStart(e.touches[0].clientX, e.touches[0].clientY), {passive:true});
+  el.addEventListener('touchmove', e => onMove(e.touches[0].clientX, e.touches[0].clientY), {passive:true});
+  el.addEventListener('touchend', () => { onEnd(); });
+
+  el.addEventListener('mousedown', e => onStart(e.clientX, e.clientY));
+  window.addEventListener('mousemove', e => { if (dragging) onMove(e.clientX, e.clientY); });
+  window.addEventListener('mouseup', () => { if (dragging) onEnd(); });
+
+  el.addEventListener('click', (e) => {
+    if (deleteModeOn) return;
+    if (longPressed || decided) return;
+    const onRing = e.target.closest('.progress-ring');
+    if (onRing) {
+      cycleProgress(id);
+    } else {
+      openDrawer(id);
+    }
+  });
+}
+
+async function cycleProgress(id) {
+  const current = getProgress(id);
+  const steps = [0, 25, 50, 75, 100];
+  let next = steps.find(s => s > current);
+  if (next === undefined) next = 0;
+  const done = next >= 100;
+  const m = getMeta(id);
+  metaById[id] = { ...m, done, progress: next };
+  renderAll();
+  updateSyncIndicator('saving');
+  try {
+    await apiUpdateMeta(id, { done, progress: next, note: m.note, due_date: m.due_date });
+    updateSyncIndicator('synced');
+  } catch (e) {
+    updateSyncIndicator('error');
+  }
+}
+
+async function moveDay(id, direction) {
+  const pos = ALL_DAYS.findIndex(d => d.iso === currentDay);
+  const newPos = pos + direction;
+  if (newPos < 0 || newPos >= ALL_DAYS.length) return;
+  const newIso = ALL_DAYS[newPos].iso;
+  const list = scheduleById[id] || [];
+  const at = list.indexOf(currentDay);
+  if (at >= 0) list.splice(at, 1);
+  if (!list.includes(newIso)) list.push(newIso);
+  scheduleById[id] = list;
+  renderAll();
+  updateSyncIndicator('saving');
+  try {
+    await apiMoveDay(id, newIso, currentDay);
+    updateSyncIndicator('synced');
+  } catch (e) {
+    updateSyncIndicator('error');
+  }
+}
+
+async function deleteTask(id) {
+  const t = TASKS.find(t => t.id === id);
+  if (!t) return;
+  if (!confirm(`¿Eliminar "${t.name}"? Esta acción no se puede deshacer.`)) return;
+  TASKS = TASKS.filter(t => t.id !== id);
+  delete scheduleById[id];
+  delete metaById[id];
+  delete photosById[id];
+  renderAll();
+  updateSyncIndicator('saving');
+  try {
+    await apiDeleteTask(id);
+    updateSyncIndicator('synced');
+  } catch (e) {
+    updateSyncIndicator('error');
+    alert('No se pudo eliminar la partida en el servidor. Refresca la página e inténtalo de nuevo.');
+  }
+}
+
+// ---------- DRAWER (detail) ----------
+function renderDrawerCover(coverUrl) {
+  const wrap = document.getElementById('drawerCoverWrap');
+  if (coverUrl) {
+    wrap.innerHTML = `<img src="${coverUrl}" alt="Portada"><div class="drawer-cover-edit-badge">editar</div><div class="drawer-cover-remove-btn" id="drawerCoverRemoveBtn">✕</div>`;
+    const removeBtn = document.getElementById('drawerCoverRemoveBtn');
+    removeBtn.addEventListener('click', async (e) => {
+      e.stopPropagation();
+      const id = drawerTaskIndex;
+      if (!id) return;
+      if (!confirm('¿Quitar la foto de portada de esta partida?')) return;
+      try {
+        await apiDeleteCover(id);
+        const t = TASKS.find(t => t.id === id);
+        if (t) t.cover_photo = null;
+        renderDrawerCover(null);
+        renderTaskList();
+      } catch (err) {
+        alert('No se pudo quitar la foto de portada.');
+      }
+    });
+  } else {
+    wrap.innerHTML = `<div class="drawer-cover-placeholder">🖼</div><div class="drawer-cover-edit-badge">añadir</div>`;
+  }
+}
+
+function openDrawer(id) {
+  drawerTaskIndex = id;
+  const t = TASKS.find(t => t.id === id);
+  const m = getMeta(id);
+  document.getElementById('drawerNameInput').value = t.name;
+  document.getElementById('drawerCatSelect').value = t.cat;
+  renderDrawerCover(t.cover_photo);
+  document.getElementById('drawerDueDate').value = m.due_date || '';
+  document.getElementById('drawerNote').value = m.note || '';
+
+  const currentPct = getProgress(id);
+  const slider = document.getElementById('drawerProgressSlider');
+  slider.value = currentPct;
+  document.getElementById('drawerProgressValue').textContent = currentPct + '%';
+  updateQuickButtons(currentPct);
+
+  renderPhotoGrid(id);
+
+  const chipsContainer = document.getElementById('drawerDayChips');
+  chipsContainer.innerHTML = '';
+  let lastMonth = null;
+  ALL_DAYS.forEach(d => {
+    if (lastMonth !== null && d.month !== lastMonth) {
+      const divider = document.createElement('div');
+      divider.className = 'day-chip month-divider';
+      chipsContainer.appendChild(divider);
+    }
+    lastMonth = d.month;
+    const chip = document.createElement('button');
+    const on = (scheduleById[id] || []).includes(d.iso);
+    chip.className = 'day-chip' + (on ? ' on' : '');
+    chip.textContent = d.dnum + '/' + d.month;
+    chip.onclick = () => {
+      const list = scheduleById[id] || (scheduleById[id] = []);
+      const pos = list.indexOf(d.iso);
+      if (pos >= 0) list.splice(pos, 1);
+      else list.push(d.iso);
+      chip.classList.toggle('on');
+    };
+    chipsContainer.appendChild(chip);
+  });
+
+  document.getElementById('drawerOverlay').classList.add('open');
+  document.getElementById('drawer').classList.add('open');
+}
+
+async function closeDrawer() {
+  const id = drawerTaskIndex;
+  if (id !== null) {
+    const due = document.getElementById('drawerDueDate').value || null;
+    const note = document.getElementById('drawerNote').value.trim() || null;
+    const pct = parseInt(document.getElementById('drawerProgressSlider').value, 10);
+    const done = pct >= 100;
+    metaById[id] = { done, progress: pct, note, due_date: due };
+
+    const newName = document.getElementById('drawerNameInput').value.trim();
+    const newCat = document.getElementById('drawerCatSelect').value;
+    const t = TASKS.find(t => t.id === id);
+    const nameOrCatChanged = t && (newName !== t.name || newCat !== t.cat);
+    if (t && newName) { t.name = newName; t.cat = newCat; }
+
+    document.getElementById('drawerOverlay').classList.remove('open');
+    document.getElementById('drawer').classList.remove('open');
+    renderAll();
+    updateSyncIndicator('saving');
+    try {
+      await apiUpdateMeta(id, { done, progress: pct, note, due_date: due });
+      await apiSetSchedule(id, scheduleById[id] || []);
+      if (nameOrCatChanged && newName) {
+        await apiEditTask(id, newName, newCat);
+      }
+      updateSyncIndicator('synced');
+    } catch (e) {
+      updateSyncIndicator('error');
+    }
+  } else {
+    document.getElementById('drawerOverlay').classList.remove('open');
+    document.getElementById('drawer').classList.remove('open');
+  }
+}
+
+function updateQuickButtons(pct) {
+  document.querySelectorAll('.progress-quick-btn').forEach(btn => {
+    btn.classList.toggle('active', parseInt(btn.dataset.pct, 10) === pct);
+  });
+}
+
+document.getElementById('drawerCloseBtn').onclick = closeDrawer;
+document.getElementById('drawerOverlay').onclick = closeDrawer;
+document.getElementById('clearDueDate').onclick = () => { document.getElementById('drawerDueDate').value = ''; };
+
+document.getElementById('drawerProgressSlider').addEventListener('input', (e) => {
+  const val = parseInt(e.target.value, 10);
+  document.getElementById('drawerProgressValue').textContent = val + '%';
+  updateQuickButtons(val);
+});
+
+document.querySelectorAll('.progress-quick-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    const val = parseInt(btn.dataset.pct, 10);
+    document.getElementById('drawerProgressSlider').value = val;
+    document.getElementById('drawerProgressValue').textContent = val + '%';
+    updateQuickButtons(val);
+  });
+});
+
+document.getElementById('drawerCoverWrap').addEventListener('click', () => {
+  if (drawerTaskIndex === null) return;
+  document.getElementById('coverPhotoInput').click();
+});
+
+document.getElementById('coverPhotoInput').addEventListener('change', async (e) => {
+  const id = drawerTaskIndex;
+  const file = e.target.files[0];
+  e.target.value = '';
+  if (!id || !file) return;
+  const wrap = document.getElementById('drawerCoverWrap');
+  wrap.innerHTML = '<div class="drawer-cover-placeholder">⏳</div>';
+  try {
+    const result = await apiUploadCover(id, file);
+    const t = TASKS.find(t => t.id === id);
+    if (t) t.cover_photo = result.cover_photo;
+    renderDrawerCover(result.cover_photo);
+    renderTaskList();
+  } catch (err) {
+    alert('No se pudo subir la foto de portada.');
+    renderDrawerCover(null);
+  }
+});
+
+document.getElementById('drawerDeleteBtn').addEventListener('click', async () => {
+  const id = drawerTaskIndex;
+  if (id === null) return;
+  const t = TASKS.find(t => t.id === id);
+  if (!t) return;
+  if (!confirm(`¿Eliminar "${t.name}"? Esta acción no se puede deshacer.`)) return;
+  TASKS = TASKS.filter(t => t.id !== id);
+  delete scheduleById[id];
+  delete metaById[id];
+  delete photosById[id];
+  document.getElementById('drawerOverlay').classList.remove('open');
+  document.getElementById('drawer').classList.remove('open');
+  renderAll();
+  updateSyncIndicator('saving');
+  try {
+    await apiDeleteTask(id);
+    updateSyncIndicator('synced');
+  } catch (e) {
+    updateSyncIndicator('error');
+  }
+});
+
+// ---------- PHOTOS ----------
+async function handlePhotoFiles(id, files) {
+  if (!files || files.length === 0) return;
+  const grid = document.getElementById('drawerPhotoGrid');
+  for (const file of files) {
+    if (!file.type.startsWith('image/')) continue;
+    const loadingDiv = document.createElement('div');
+    loadingDiv.className = 'photo-thumb-wrap';
+    loadingDiv.style.display = 'flex';
+    loadingDiv.style.alignItems = 'center';
+    loadingDiv.style.justifyContent = 'center';
+    loadingDiv.style.fontSize = '10px';
+    loadingDiv.style.color = 'var(--ink-soft)';
+    loadingDiv.textContent = '⏳ Subiendo…';
+    grid.appendChild(loadingDiv);
+    try {
+      const result = await apiUploadPhoto(id, file);
+      if (!photosById[id]) photosById[id] = [];
+      photosById[id].push(result);
+      renderPhotoGrid(id);
+    } catch (e) {
+      loadingDiv.textContent = '⚠ Error';
+      console.error('Error subiendo foto', e);
+    }
+  }
+}
+
+function renderPhotoGrid(id) {
+  const grid = document.getElementById('drawerPhotoGrid');
+  const photos = photosById[id] || [];
+  grid.innerHTML = '';
+  if (photos.length === 0) {
+    grid.innerHTML = '<div class="photo-empty-hint">Sin fotos todavía. Añade una foto del avance de esta partida.</div>';
+    return;
+  }
+  photos.forEach((p) => {
+    const wrap = document.createElement('div');
+    wrap.className = 'photo-thumb-wrap';
+    const dateLabel = new Date(p.ts).toLocaleDateString('es-ES', { day: 'numeric', month: 'short' });
+    wrap.innerHTML = `
+      <img src="${p.url}" alt="Foto avance" loading="lazy">
+      <div class="photo-thumb-date">${dateLabel}</div>
+      <div class="photo-delete-btn" data-id="${p.id}">✕</div>
+    `;
+    wrap.querySelector('img').addEventListener('click', () => openLightbox(p.url));
+    wrap.querySelector('.photo-delete-btn').addEventListener('click', async (e) => {
+      e.stopPropagation();
+      if (!confirm('¿Eliminar esta foto?')) return;
+      try {
+        await apiDeletePhoto(p.id);
+        photosById[id] = (photosById[id] || []).filter(x => x.id !== p.id);
+        renderPhotoGrid(id);
+      } catch (err) {
+        alert('No se pudo eliminar la foto.');
+      }
+    });
+    grid.appendChild(wrap);
+  });
+}
+
+function openLightbox(url) {
+  document.getElementById('photoLightboxImg').src = url;
+  document.getElementById('photoLightbox').classList.add('open');
+}
+function closeLightbox() {
+  document.getElementById('photoLightbox').classList.remove('open');
+  document.getElementById('photoLightboxImg').src = '';
+}
+document.getElementById('photoLightboxClose').addEventListener('click', closeLightbox);
+document.getElementById('photoLightbox').addEventListener('click', (e) => {
+  if (e.target.id === 'photoLightbox') closeLightbox();
+});
+
+document.getElementById('addPhotoCameraBtn').addEventListener('click', () => {
+  document.getElementById('photoInputCamera').click();
+});
+document.getElementById('addPhotoGalleryBtn').addEventListener('click', () => {
+  document.getElementById('photoInputGallery').click();
+});
+document.getElementById('photoInputCamera').addEventListener('change', (e) => {
+  if (drawerTaskIndex !== null) handlePhotoFiles(drawerTaskIndex, e.target.files);
+  e.target.value = '';
+});
+document.getElementById('photoInputGallery').addEventListener('change', (e) => {
+  if (drawerTaskIndex !== null) handlePhotoFiles(drawerTaskIndex, e.target.files);
+  e.target.value = '';
+});
+
+// ---------- AÑADIR PARTIDA ----------
+document.getElementById('addTaskBtn').addEventListener('click', () => {
+  document.getElementById('newTaskName').value = '';
+  document.getElementById('newTaskCat').value = 'piscina';
+  document.getElementById('newTaskDay').value = currentDay;
+  document.getElementById('newDrawerOverlay').classList.add('open');
+  document.getElementById('newDrawer').classList.add('open');
+});
+
+function closeNewDrawer() {
+  document.getElementById('newDrawerOverlay').classList.remove('open');
+  document.getElementById('newDrawer').classList.remove('open');
+}
+document.getElementById('newDrawerOverlay').onclick = closeNewDrawer;
+
+document.getElementById('newTaskSaveBtn').addEventListener('click', async () => {
+  const name = document.getElementById('newTaskName').value.trim();
+  const cat = document.getElementById('newTaskCat').value;
+  const day = document.getElementById('newTaskDay').value;
+  if (!name) { alert('Por favor escribe un nombre para la partida.'); return; }
+  if (!day) { alert('Por favor elige un día.'); return; }
+  closeNewDrawer();
+  updateSyncIndicator('saving');
+  try {
+    const { id } = await apiCreateTask(name, cat, day);
+    TASKS.push({ id, name, cat });
+    scheduleById[id] = [day];
+    metaById[id] = { done: 0, progress: 0, note: null, due_date: null };
+    currentDay = day;
+    renderAll();
+    scrollDayIntoView();
+    updateSyncIndicator('synced');
+  } catch (e) {
+    updateSyncIndicator('error');
+    alert('No se pudo crear la partida. Revisa la conexión con el servidor.');
+  }
+});
+
+// ---------- MODO ELIMINAR ----------
+document.getElementById('deleteModeBtn').addEventListener('click', () => {
+  deleteModeOn = !deleteModeOn;
+  document.body.classList.toggle('delete-mode-on', deleteModeOn);
+  document.getElementById('deleteModeBtn').classList.toggle('active', deleteModeOn);
+  document.getElementById('deleteModeBtn').textContent = deleteModeOn ? '✓ Listo' : '🗑 Eliminar';
+});
+
+// ---------- EXPORTAR PDF GANTT ----------
+function categoryColor(cat) {
+  const map = {
+    piscina: [10, 110, 140],
+    edif: [217, 142, 63],
+    exterior: [63, 148, 104],
+    final: [212, 96, 74],
+  };
+  return map[cat] || [100, 100, 100];
+}
+function categoryLabelEs(cat) {
+  const map = { piscina: 'Piscinas', edif: 'Edificios', exterior: 'Exterior', final: 'Cierre final' };
+  return map[cat] || cat;
+}
+
+async function exportGanttPdf() {
+  if (typeof window.jspdf === 'undefined') {
+    alert('No se pudo cargar la librería de PDF. Verifica tu conexión a internet e inténtalo de nuevo.');
+    return;
+  }
+  const btn = document.getElementById('exportPdfBtn');
+  const originalText = btn.textContent;
+  btn.textContent = '⏳ Generando…';
+  btn.disabled = true;
+
+  try {
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
+    const pageW = doc.internal.pageSize.getWidth();
+    const pageH = doc.internal.pageSize.getHeight();
+    const marginX = 12;
+
+    const rows = TASKS.map(t => {
+      const days = (getSchedule(t.id) || []).slice().sort();
+      const firstDay = days[0] || null;
+      const lastDay = days[days.length - 1] || null;
+      const m = getMeta(t.id);
+      return { t, firstDay, lastDay, days, pct: getProgress(t.id), due: m.due_date, note: m.note };
+    }).filter(r => r.firstDay).sort((a,b) => a.firstDay < b.firstDay ? -1 : a.firstDay > b.firstDay ? 1 : a.t.name.localeCompare(b.t.name));
+
+    const totalDaysSpan = ALL_DAYS.length;
+    function dayIndex(iso) { return ALL_DAYS.findIndex(d => d.iso === iso); }
+
+    let y = 14;
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(15);
+    doc.setTextColor(15, 39, 64);
+    doc.text("Complejo Acuático La Vall d'Uixó — Diagrama de Gantt", marginX, y);
+    y += 6;
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(9.5);
+    doc.setTextColor(90, 106, 115);
+    const genDate = new Date().toLocaleDateString('es-ES', { day: 'numeric', month: 'long', year: 'numeric' });
+    doc.text(`Generado el ${genDate} · Periodo: 15 junio – 31 agosto 2026`, marginX, y);
+    y += 7;
+
+    const totalTasks = rows.length;
+    const doneTasks = rows.filter(r => r.pct >= 100).length;
+    const lateTasks = rows.filter(r => r.due && r.pct < 100 && r.due < TODAY_ISO).length;
+    const avgPct = totalTasks ? Math.round(rows.reduce((s,r) => s + r.pct, 0) / totalTasks) : 0;
+
+    doc.setFontSize(9);
+    doc.setTextColor(22,36,47);
+    doc.setFont('helvetica', 'bold');
+    doc.text(`${totalTasks}`, marginX, y);
+    doc.text(`${doneTasks}`, marginX + 38, y);
+    doc.text(`${avgPct}%`, marginX + 76, y);
+    doc.text(`${lateTasks}`, marginX + 114, y);
+    doc.setFont('helvetica', 'normal');
+    doc.setTextColor(90,106,115);
+    doc.setFontSize(7.5);
+    doc.text('partidas totales', marginX, y + 4);
+    doc.text('completadas', marginX + 38, y + 4);
+    doc.text('avance medio', marginX + 76, y + 4);
+    doc.text('con retraso', marginX + 114, y + 4);
+    y += 10;
+
+    const labelColW = 62;
+    const chartX0 = marginX + labelColW;
+    const chartW = pageW - marginX - chartX0;
+    const dayW = chartW / totalDaysSpan;
+    const rowH = 5.6;
+    const chartTopY = y + 8;
+
+    doc.setFontSize(7);
+    doc.setTextColor(90,106,115);
+    const monthNamesPdf = {6:'JUNIO', 7:'JULIO', 8:'AGOSTO'};
+    for (let m = 6; m <= 8; m++) {
+      const idxs = ALL_DAYS.map((d,i)=>({d,i})).filter(o => o.d.month === m);
+      if (idxs.length === 0) continue;
+      const startI = idxs[0].i;
+      const endI = idxs[idxs.length-1].i;
+      const xStart = chartX0 + startI * dayW;
+      const xEnd = chartX0 + (endI+1) * dayW;
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(8);
+      doc.setTextColor(15,39,64);
+      doc.text(monthNamesPdf[m], xStart + (xEnd-xStart)/2, chartTopY - 3, { align: 'center' });
+    }
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(6);
+    doc.setTextColor(140,140,140);
+    ALL_DAYS.forEach((d, i) => {
+      if (d.dnum % 5 === 0 || i === 0) {
+        const x = chartX0 + i * dayW;
+        doc.text(String(d.dnum), x, chartTopY - 0.5, { align: 'center' });
+        doc.setDrawColor(230, 225, 213);
+        doc.setLineWidth(0.15);
+        doc.line(x, chartTopY, x, pageH - 16);
+      }
+    });
+    const todayIdx = dayIndex(TODAY_ISO);
+    if (todayIdx >= 0) {
+      const xToday = chartX0 + todayIdx * dayW;
+      doc.setDrawColor(212, 96, 74);
+      doc.setLineWidth(0.5);
+      doc.line(xToday, chartTopY, xToday, pageH - 16);
+    }
+
+    let rowY = chartTopY + 3;
+    const maxY = pageH - 14;
+    let pageNum = 1;
+
+    function drawPageFooter() {
+      doc.setFontSize(7.5);
+      doc.setTextColor(150,150,150);
+      doc.text(`Página ${pageNum}`, pageW - marginX, pageH - 7, { align: 'right' });
+      doc.text("Grupo Nealis · La Vall d'Uixó · Creado por Sicignano Gaetano", marginX, pageH - 7);
+    }
+
+    rows.forEach((r, idx) => {
+      if (rowY + rowH > maxY) {
+        drawPageFooter();
+        doc.addPage();
+        pageNum++;
+        rowY = 16;
+        doc.setFontSize(7);
+        doc.setTextColor(90,106,115);
+        doc.setFont('helvetica', 'bold');
+        doc.text("Complejo Acuático — continuación", marginX, 10);
+      }
+
+      const isOdd = idx % 2 === 1;
+      if (isOdd) {
+        doc.setFillColor(251, 249, 245);
+        doc.rect(marginX, rowY - 3.6, pageW - marginX*2, rowH, 'F');
+      }
+
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(7.2);
+      doc.setTextColor(22,36,47);
+      let name = r.t.name;
+      const maxChars = 46;
+      if (name.length > maxChars) name = name.slice(0, maxChars - 1) + '…';
+      doc.text(name, marginX, rowY);
+
+      const startI = dayIndex(r.firstDay);
+      const endI = dayIndex(r.lastDay) >= 0 ? dayIndex(r.lastDay) : startI;
+      const barX = chartX0 + startI * dayW;
+      const barW = Math.max((endI - startI + 1) * dayW, dayW * 0.8);
+      const barY = rowY - 3.2;
+      const barH = 3.6;
+      const [cr, cg, cb] = categoryColor(r.t.cat);
+
+      doc.setFillColor(cr, cg, cb);
+      doc.setGState(new doc.GState({opacity: 0.28}));
+      doc.roundedRect(barX, barY, barW, barH, 0.6, 0.6, 'F');
+      doc.setGState(new doc.GState({opacity: 1}));
+
+      if (r.pct > 0) {
+        const fillW = barW * (r.pct / 100);
+        doc.setFillColor(cr, cg, cb);
+        doc.roundedRect(barX, barY, Math.max(fillW, 1.2), barH, 0.6, 0.6, 'F');
+      }
+
+      if (r.due) {
+        const dueI = dayIndex(r.due);
+        if (dueI >= 0) {
+          const xDue = chartX0 + dueI * dayW + dayW/2;
+          const late = r.pct < 100 && r.due < TODAY_ISO;
+          doc.setFillColor(late ? 194 : 90, late ? 65 : 90, late ? 46 : 90);
+          doc.triangle(xDue - 0.9, barY - 0.6, xDue + 0.9, barY - 0.6, xDue, barY + 0.8, 'F');
+        }
+      }
+
+      doc.setFontSize(6);
+      doc.setTextColor(90,106,115);
+      doc.text(`${r.pct}%`, barX + barW + 1.5, rowY - 1);
+
+      rowY += rowH;
+    });
+
+    drawPageFooter();
+
+    const notesRows = rows.filter(r => r.note);
+    if (notesRows.length > 0) {
+      doc.addPage();
+      pageNum++;
+      let ny = 16;
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(13);
+      doc.setTextColor(15,39,64);
+      doc.text('Notas de obra', marginX, ny);
+      ny += 8;
+      doc.setFontSize(8.5);
+      notesRows.forEach(r => {
+        if (ny > pageH - 16) { drawPageFooter(); doc.addPage(); pageNum++; ny = 16; }
+        doc.setFont('helvetica', 'bold');
+        doc.setTextColor(22,36,47);
+        doc.text(r.t.name, marginX, ny);
+        ny += 4.2;
+        doc.setFont('helvetica', 'normal');
+        doc.setTextColor(90,106,115);
+        const noteLines = doc.splitTextToSize('📝 ' + r.note, pageW - marginX*2 - 4);
+        doc.text(noteLines, marginX + 2, ny);
+        ny += noteLines.length * 4 + 4;
+      });
+      drawPageFooter();
+    }
+
+    doc.setPage(1);
+    let legendX = pageW - marginX - 58;
+    let legendY = 8;
+    const cats = ['piscina','edif','exterior','final'];
+    doc.setFontSize(6.5);
+    cats.forEach((c, i) => {
+      const [cr,cg,cb] = categoryColor(c);
+      doc.setFillColor(cr,cg,cb);
+      doc.rect(legendX + i*15, legendY, 2.2, 2.2, 'F');
+      doc.setTextColor(90,106,115);
+      doc.text(categoryLabelEs(c), legendX + i*15 + 3, legendY + 1.8);
+    });
+
+    const filename = `Gantt_Piscina_La_Vall_${TODAY_ISO}.pdf`;
+    doc.save(filename);
+  } catch (e) {
+    alert('Hubo un error generando el PDF: ' + e.message);
+  } finally {
+    btn.textContent = originalText;
+    btn.disabled = false;
+  }
+}
+
+document.getElementById('exportPdfBtn').addEventListener('click', exportGanttPdf);
+
+// ---------- RENDER ALL ----------
+function renderAll() {
+  renderDayNav();
+  renderDayHeader();
+  renderGlobalStats();
+  renderLateBanner();
+  renderTaskList();
+}
+
+// ---------- INIT ----------
+async function init() {
+  try {
+    await loadState();
+    renderAll();
+    scrollDayIntoView();
+    pollTimer = setInterval(pollForUpdates, 4000);
+  } catch (e) {
+    updateSyncIndicator('error');
+    document.getElementById('taskList').innerHTML =
+      '<div class="empty-state">⚠ No se pudo conectar con el servidor.<br>Verifica que el servidor esté funcionando y refresca la página.</div>';
+  }
+}
+
+init();
+</script>
+
+</body>
+</html>
